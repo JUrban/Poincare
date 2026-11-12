@@ -53,9 +53,15 @@ recorder of the Navier_Stokes port:
 * All 50 type definition theorems of the HOL Light session are in Candle's; Candle has 2 more, for its `cval`.
 * One-sided: `hashek` (HOL Light's `thecops.ml`) and Candle's `Cexp_*` and `cval` constants, none in a cone.
 
+The same at HOL Light `31fe213` (the commit in Candle `master`): 0 of 920 shared definitions differ, the six cones
+are identical, all 50 type definition theorems agree.  The short sessions also load the files that prove the 30
+sanity theorems of `audit/check.ml` (`src/pc_audit_sanity.ml` and two files above); their statements are
+identical in both systems, all without hypotheses.
+
 The proving session prints the definitions of the statement files and all constants (`dump_final.ml`), to link it
-to these.  A first version rebuilt the definitions wrongly (`new_definition` of `pair.ml` binds fresh variables);
-the HOL Light session showed this, and it is fixed.
+to these.  It has no list of definitions, so it rebuilds each one from the theorem `new_definition` returns, as
+`new_definition` (of `pair.ml`, which binds fresh variables) builds it.  Checked in the HOL Light session: the 28
+rebuilt definitions are the session's own.
 
 ## Resources
 
@@ -63,7 +69,12 @@ the HOL Light session showed this, and it is fixed.
   its whole heap.  HOL Light peaks at 17.5 GiB for this development (23.3 GiB without the `Gc.set`), against
   7.4 GiB for Navier_Stokes, which ran in a 24 GB Candle heap.  The main lane uses 46 GB, so only one such session
   runs at a time.
-* Candle compiles every top-level phrase into a code buffer (500 MB) and a data buffer (625 MB) fixed when the
-  binary is built.  `Multivariate/vectors.ml` (468 KB) took 2.1 MB and 1.7 MB of them; `src/` is 93 MB, so the code
-  buffer could be close to full.  The main lane's use of both buffers is logged (from `/proc/PID/smaps`), to see
-  early whether Candle needs to be built with larger buffers.
+* Candle compiles every top-level phrase into a code buffer and a data buffer whose sizes are fixed when the binary
+  is built (`candle/cake.S.patch`: 500 MiB and 625 MiB).  The driver logs how much of each is used, by reading the
+  Candle process's memory (both buffers start zeroed and fill from the start; `tools/codehw_lib.py`).  The library
+  (to `100/green.ml`) uses 92 MB of code and 45 MB of data.  In the first 11 MB of `src/` the code grew by 4.8 MB
+  per MB of source (2.7 to 6.6 by family of files), which projects to about 554 MB for all of `src/`, more than
+  the buffer holds.  So the run was stopped after an hour and restarted with Candle built with a code buffer of
+  1000 MiB (`CODE_BUFFER_SIZE 1048576000` in `cake.S`; the data buffer is unchanged, and doubling both does not
+  link, because the text and data must stay within 2 GB of each other).  The binary is otherwise built from the
+  same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.

@@ -2,27 +2,26 @@
 zeroed, so the last non-zero byte bounds what the dynamic compiler wrote).  Reading /proc/PID/mem needs the caller
 to be an ancestor of PID (kernel.yama.ptrace_scope = 1)."""
 import subprocess
-_SYMS = None
-def _syms():
-    global _SYMS
-    if _SYMS is None:
-        _SYMS = {}
-        out = subprocess.run(["nm", "/project/work/wt/pc-master/candle/build/cake"], capture_output=True, text=True).stdout
+_SYMS = {}
+def _syms(exe):
+    if exe not in _SYMS:
+        _SYMS[exe] = syms = {}
+        out = subprocess.run(["nm", exe], capture_output=True, text=True).stdout
         for l in out.split("\n"):
             p = l.split()
             if len(p) == 3 and p[2] in ("cake_codebuffer_begin", "cake_codebuffer_end", "cake_bitmaps_buffer_begin",
                                         "cake_bitmaps_buffer_end"):
-                _SYMS[p[2]] = int(p[0], 16)
-    return _SYMS
+                syms[p[2]] = int(p[0], 16)
+    return _SYMS[exe]
 def high_waters(pid):
-    s = _syms()
     base = None
     for l in open("/proc/%s/maps" % pid):
         f = l.split()
         if l.rstrip().endswith("/cake") and int(f[2], 16) == 0:
-            base = int(f[0].split("-")[0], 16); break
+            base = int(f[0].split("-")[0], 16); exe = f[-1]; break
     if base is None:
         raise RuntimeError("no mapping of the cake binary")
+    s = _syms(exe)
     with open("/proc/%s/mem" % pid, "rb") as mem:
         def nonzero(off, n):
             mem.seek(base + off); return bool(mem.read(n).strip(b"\0"))

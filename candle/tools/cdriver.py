@@ -34,6 +34,19 @@ def free_port():
     return str(p)
 
 
+def kill_tree(p):
+    """Kill the processes under the spawned one: closing candle.sh (or dmtcp_restart) can leave cake running."""
+    def tree(pid):
+        kids = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True).stdout.split()
+        return [x for k in kids for x in tree(int(k))] + [int(k) for k in kids]
+    time.sleep(2)
+    for x in tree(p.pid):
+        try:
+            os.kill(x, 9)
+        except OSError:
+            pass
+
+
 def log_buffers(p):
     """Log how much of Candle's code and data buffers is used (pc/tools/codehw_lib.py); the driver is an
     ancestor of the Candle process, so it may read its memory."""
@@ -197,6 +210,7 @@ def main():
             log("FAIL %s after %.1fs: %s" % (label, dt, err))
             log("  while loading: " + " > ".join(stack))
             log("---- context ----\n" + ctx[-3000:])
+            kill_tree(p)
             p.close(force=True)
             return 1
         log("OK   %-50s %8.1fs  (total %.1fs)" % (label, dt, time.time() - t0))
@@ -204,6 +218,7 @@ def main():
     if a.keep:
         p.interact()
     p.sendline("exit 0;;")
+    kill_tree(p)
     p.close(force=True)
     shutil.rmtree(sess, ignore_errors=True)
     return 0
