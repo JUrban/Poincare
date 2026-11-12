@@ -43,7 +43,8 @@ and Poincare (1,090 files), which needs Candle versions of 33 files (in progress
 | the code buffer is fixed in the binary (500 MiB); Poincare needs more | the binary is rebuilt with 1000 MiB; both buffers cannot be doubled, because text and data must stay within 2 GB of each other (32-bit PC-relative relocations); use is measured by reading the process memory |
 
 Speed was not a problem: about 1.2x bytecode HOL Light on the same machine for Navier_Stokes, with a few files up
-to 5x.
+to 5x.  Poincare's first 237 files took 2.0x the HOL Light times that upstream published (measured on a shared
+machine); a measurement of HOL Light on the same machine is under way.
 
 ## Long-term solutions in Candle, from least to most ambitious
 
@@ -67,7 +68,7 @@ to 5x.
 4. **A porting tool built on OCaml's own type checker (`compiler-libs`).** HOL Light developments type-check in
    OCaml, so a tool can find the type at every `<`, `compare`, `setify` or `Hashtbl` use and emit Candle's typed
    versions, or at least list them.  That would make ports mechanical.  It would also replace the manual survey,
-   probes and review that found the problems above before the 10-hour run reached them.
+   probes and review that found the problems above before the long run reached them.
 5. **New runtime primitives: polymorphic structural compare and hash.** These would work like CakeML's existing
    polymorphic equality.  Candle's library could then keep HOL Light's signatures (`setify`, `<` on terms and
    tuples, OCaml's `Hashtbl`), which removes most of the library differences at once.  This touches the verified
