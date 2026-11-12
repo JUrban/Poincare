@@ -57,4 +57,5 @@ output, use `loads "pc/candle/make.ml";;`.
 | `check.ml`, `check_results.ml` | `check.ml` of the main repository, without `Printf` |
 | `audit.ml`, `audit_results.ml` | `audit/make.ml` and `audit/check.ml`, without `Printf` and without loading `make.ml`; run after `make.ml` |
 | `statements.ml`, `dump_*.ml`, `compare_defs.py` | compare the statements and results with HOL Light; see `REPORT.md` |
+| `INCOMPATIBILITIES.md` | what differs between HOL Light and Candle, how the port handles it, and what Candle could change |
 | `tools/` | the scripts behind the runs in `REPORT.md`; paths are those of the machine they ran on |
