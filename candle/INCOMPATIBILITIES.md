@@ -43,8 +43,9 @@ and Poincare (1,090 files), which needs Candle versions of 33 files (in progress
 | the code buffer is fixed in the binary (500 MiB); Poincare needs more | the binary is rebuilt with 1000 MiB; both buffers cannot be doubled, because text and data must stay within 2 GB of each other (32-bit PC-relative relocations); use is measured by reading the process memory |
 
 Speed was not a problem: about 1.2x bytecode HOL Light on the same machine for Navier_Stokes, with a few files up
-to 5x.  Poincare's first 237 files took 2.0x the HOL Light times that upstream published (measured on a shared
-machine); a measurement of HOL Light on the same machine is under way.
+to 5x.  For Poincare, about 1.26x on the first 500 files of `src/` (HOL Light `e5236a58`, bytecode, on the same
+machine at the same time; per file a median of 1.30, from 0.54x to 2.5x) and 1.19x on the library.  The times
+upstream published are 1.6x faster than HOL Light here, so a comparison with them overstates the cost of Candle.
 
 ## Long-term solutions in Candle, from least to most ambitious
 

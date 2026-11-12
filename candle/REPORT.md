@@ -92,4 +92,23 @@ Light sessions: the 28 rebuilt definitions are the session's own.
   the buffer holds.  So the run was stopped after an hour and restarted with Candle built with a code buffer of
   1000 MiB (`CODE_BUFFER_SIZE 1048576000` in `cake.S`; the data buffer is unchanged, and doubling both does not
   link, because the text and data must stay within 2 GB of each other).  The binary is otherwise built from the
-  same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.
+  same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.  On this
+  binary the code grows by about 5.2 MB per MB of source, which projects to about 590 MB for all of `src/`.
+
+## Time (interim)
+
+The times that upstream published (`doc/timing.tsv`) are not comparable with a run here: HOL Light `e5236a58`
+(bytecode toplevel, OCaml 4.14.1, with `make.ml`'s `Gc.set`) took 1.61x their time on the first 500 files of
+`src/` on this machine.  So HOL Light loaded the library and those files here, timing each
+(`tools/hl_time.sh`), while the Candle run was loading the same files in the same order; both run on one core of a
+machine with many idle cores, and CPU and wall-clock times of HOL Light agree within 0.2%.  Compared file by file
+(`tools/timecmp.py`):
+
+| | HOL Light here | Candle | Candle / HOL Light |
+|---|---|---|---|
+| library (`cauchy.ml`, `lpspaces.ml`, `green.ml`) | 2,424 s | 2,891 s | 1.19 |
+| first 500 files of `src/` | 7,848 s | 9,921 s | 1.26 |
+
+Of the 219 files that take 10 s or more in HOL Light, the median ratio is 1.30 (quartiles 1.07 and 1.52, from
+0.54 to 2.50).  By family of files, from 1.01 (`pc_apx`) to 1.45 (`pc_cmp`).  Candle's times exclude the
+checkpoints.
