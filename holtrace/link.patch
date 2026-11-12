@@ -1,0 +1,30 @@
+--- holtrace.ml.pre-link	2026-11-08 21:31:36.419907350 +0000
++++ holtrace.ml	2026-11-08 21:31:36.431170807 +0000
+@@ -505,6 +505,7 @@
+   val holtrace_restore_skipthmchecks_allownew: (string * thm) list -> string -> unit
+ 
+   val holtrace_restore_worker: (unit -> float) -> bool -> bool -> bool -> (string * thm) list -> string -> unit
++  val holtrace_link_hook: (term -> thm option) ref
+ 
+   val holtrace_restore_id2type: int -> hol_type
+   val holtrace_restore_id2term: int -> term
+@@ -646,6 +647,8 @@
+   let stats_axiom_matching = ref 0
+   let stats_axiom_creating = ref 0
+ 
++  let holtrace_link_hook = ref (fun (_:term) -> (None : thm option))
++
+   let holtrace_axiom allownewaxioms term =
+     let target = [],term in
+     let istarget f = (dest_thm f = target) in
+@@ -655,6 +658,10 @@
+       stats_axiom_matching := 1 + !stats_axiom_matching;
+       th
+     with Not_found ->
++      match !holtrace_link_hook term with
++      | Some th when dest_thm th = target -> th
++      | Some _ -> failwith "holtrace_link_hook: theorem does not match the axiom line"
++      | None ->
+       if allownewaxioms then begin
+         Printf.printf "creating axiom\n%!";
+         stats_axiom_creating := 1 + !stats_axiom_creating;
