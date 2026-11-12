@@ -2,12 +2,10 @@
 (* In the session that proves the theorems (no instrumentation): the         *)
 (* definitions made with new_definition in src/poincare_statement.ml,         *)
 (* src/pc_interfaces.ml and audit/poincare_blind.ml, in the form in which    *)
-(* the kernel recorded them (c = \x1 .. xn. t, rebuilt from the theorem     *)
-(* |- !x1 .. xn. c x1 .. xn = t as new_definition builds it), and all        *)
-(* constants and type operators, as candle/dump_defs.ml prints them.  Left   *)
-(* out: smooth_map_on, whose name is bound again by the identical            *)
-(* redefinition in src/ns_smooth.ml, with other variable names.  Run after   *)
-(* the audit.  Self-contained, so that no nested load precedes the output.   *)
+(* the kernel recorded them (rebuilt from the theorems as new_definition     *)
+(* builds them; see basic_definition_of), and all constants and type         *)
+(* operators, as candle/dump_defs.ml prints them.  Run after the audit.      *)
+(* Self-contained, so that no nested load precedes the output.               *)
 (* ========================================================================= *)
 
 let rec dump_ty ty =
@@ -25,14 +23,29 @@ let rec dump_tm tm =
   else
     let (v,b) = dest_abs tm in "(L " ^ dump_tm v ^ " " ^ dump_tm b ^ ")";;
 
+(* new_definition (pair.ml) gives the kernel fn = \g1 .. gn. r', where each   *)
+(* argument is replaced by a fresh variable gi (and the components of a       *)
+(* tuple by FST and SND of it); rebuild that from |- !avs. fn args = r.  The  *)
+(* names of the fresh variables differ, but compare_defs.py renames them.     *)
+
 let basic_definition_of th =
+  let depair arg =
+    let rec depair gv arg =
+      try let l,r = dest_pair arg in
+          (depair (list_mk_icomb "FST" [gv]) l) @
+          (depair (list_mk_icomb "SND" [gv]) r)
+      with Failure _ -> [gv,arg] in
+    let gv = genvar(type_of arg) in
+    gv,depair gv arg in
   let _,bod = strip_forall (concl th) in
   let l,r = dest_eq bod in
-  let c,args = strip_comb l in
-  mk_eq(c, list_mk_abs(args, r));;
+  let fn,args = strip_comb l in
+  let gargs,reps = (I F_F unions) (unzip(map depair args)) in
+  mk_eq(fn, list_mk_abs(gargs, subst reps r));;
 
 do_list (fun th -> print_string ("DEFDUMP " ^ dump_tm (basic_definition_of th) ^ "\n"))
-  [simply_connected_space;
+  [smooth_map_on;
+   simply_connected_space;
    locally_euclidean_space;
    smooth_manifold_atlas;
    smooth_immersion_into;
