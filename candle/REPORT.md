@@ -26,8 +26,10 @@ quotations and strings removed, `src/` and `audit/` use the following that Candl
 | `Hashtbl.create n`, `add`, `reset`, `hash_param` | caches in `pc_rfa_h3d.ml` (`pc_rfa_hext.ml` and `pc_rfa_hpsd.ml` only reset them) | `compat.ml` adds `add`, `reset` and a term hash; the six tables are created with a hash and an order, as Candle's tables require, and with a type annotation, because CakeML has no weak type variables |
 | `setify` of a list of terms (Candle's takes an order) | 4 files | `setify Term.(<)`, as in Candle's own library; `Term.compare` follows OCaml's order on terms, so the result is the same |
 | `<` on pairs (Candle's is on `int` only) | `pc_moi_s2628_stmt.ml` | an explicit lexicographic order, the same as OCaml's |
+| `loadt` (Candle has `loads`, relative to the current directory) | `pc_moi_pl2.ml` (of `100/pick.ml`), `audit/pc_audit_equiv.ml` | `loads` |
 
-So 25 files of `src/` have Candle versions in `candle/src/`.  The rest of `src/` is used unchanged.  Not needed:
+So 26 files of `src/` and one of `audit/` have Candle versions in `candle/src/` and `candle/audit/`.  The rest is
+used unchanged.  Not needed:
 `Kernel.compute`, loops (`for`, `while`), `lazy`, polymorphic `compare` (no other uses found).  Supported as in
 OCaml: `when` guards, `as` patterns, `function`, `try`/`raise`, `ignore`, `begin`/`end`,
 `type_invention_error`.  Of the 5,688 library identifiers that `src/` and `audit/` use, all exist in Candle
