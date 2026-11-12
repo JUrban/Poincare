@@ -1,7 +1,7 @@
 # HOL Light developments on Candle: incompatibilities and how to remove them
 
 A memo from porting two developments to Candle `master` (`6a9acd5`): Navier_Stokes, which needed no source changes,
-and Poincare (1,090 files), which needs Candle versions of 33 files (in progress; see `REPORT.md`).
+and Poincare (1,090 files), which needs Candle versions of 35 files (in progress; see `REPORT.md`).
 
 ## What differs, and what the ports do now
 
@@ -34,6 +34,7 @@ and Poincare (1,090 files), which needs Candle versions of 33 files (in progress
 |---|---|
 | `needs`/`loads` are lexer directives that search `loadPath`, by default only the current directory; no `loadt` | `setup.sh` puts symlinks in the Candle root (and directories of symlinks, so that the Candle versions of files replace the originals without changing `src/`); `loadt` becomes `loads` (2 files) |
 | `needs` records a file even when its load fails, and only answers "Already loaded" afterwards | the driver reloads failed files with `loads` |
+| the REPL splits input into phrases with its own lexer, which reads `(*` right after a symbol character as part of the symbol; the comment's words then count, and an `end` in `[(* ... end *)` lowers the nesting level, so no later `;;` ends a phrase and Candle waits for input forever | a space after the `[` (2 files, found by `tools/prelex.py`, which emulates the scanner); the driver fails when Candle is idle for 10 minutes |
 
 **Resources**
 
@@ -53,6 +54,8 @@ upstream published are 1.6x faster than HOL Light here, so a comparison with the
    * The missing standard functions: `string_of_bool`, the rest of OCaml's `List` (`for_all2`, `iter2`, `exists2`,
      `mapi`, `init`, ...), and `Hashtbl.add`, `reset`, `mem`, `length`.
    * `loadt` as an alias of `loads`.
+   * In the REPL's phrase scanner (`candle/prover/candle_boot.ml`), end a run of symbol characters before `(*`, as
+     OCaml's lexer does, so that every comment is a comment.
    * `Match_failure _` handlers read as `Bind`, next to the constructor renamings the front end already has
      (`compatCons` in `cakeml/candle/parser/conversion_support.cml`).
    * Make the `Cexp_*` overloads of `compute.ml` opt-in, since overloads silently change parsing.

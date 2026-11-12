@@ -66,6 +66,25 @@ def log_buffers(p):
         log("   BUFFERS unknown: %s" % e)
 
 
+IDLE_POLL = int(os.environ.get("CDRIVER_IDLE", "600"))  # seconds without output after which the driver checks that Candle still uses CPU
+
+
+def cpu_ticks(p):
+    """The CPU time (clock ticks) used so far by the processes under the spawned one."""
+    def tree(pid):
+        kids = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True).stdout.split()
+        return [pid] + [x for k in kids for x in tree(int(k))]
+    total = 0
+    for x in tree(p.pid):
+        try:
+            s = open("/proc/%d/stat" % x).read()
+            f = s[s.rindex(")") + 2:].split()
+            total += int(f[11]) + int(f[12])
+        except (OSError, ValueError, IndexError):
+            pass
+    return total
+
+
 def log(msg):
     print(msg, flush=True)
 
@@ -171,8 +190,19 @@ def main():
         stack = []
         err = None
         ctx = ""
+        ticks = cpu_ticks(p)
         while True:
-            k = p.expect(PATS)
+            k = p.expect(PATS, timeout=min(IDLE_POLL, a.timeout))
+            if k == 7 and time.time() - t < a.timeout:
+                # no output for IDLE_POLL seconds: go on waiting if Candle is computing; if it is not, it is
+                # waiting for input, for example because its phrase scanner did not see the end of a phrase
+                now = cpu_ticks(p)
+                if now != ticks:
+                    ticks = now
+                    continue
+                err = "IDLE: no CPU use for %d s, so Candle is waiting for input" % IDLE_POLL
+                ctx = p.before[-3000:] if p.before else ""
+                break
             if k == 0:
                 stack.append(p.match.group(1))
             elif k == 1:

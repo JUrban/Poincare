@@ -2,7 +2,7 @@
 
 This directory runs the development on [Candle](https://github.com/CakeML/candle)
 (HOL Light on CakeML).  `src/`, `audit/` and `make.ml` are not changed and still load in
-HOL Light: the 33 files that Candle needs changed have Candle versions in `candle/src/`
+HOL Light: the 35 files that Candle needs changed have Candle versions in `candle/src/`
 and `candle/audit/`, and `candle/make.ml` is `make.ml` without its `Gc.set` line.
 `REPORT.md` describes the changes, the results and how they were checked.
 

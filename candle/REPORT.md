@@ -29,8 +29,9 @@ quotations and strings removed, `src/` and `audit/` use the following that Candl
 | `loadt` (Candle has `loads`, relative to the current directory) | `pc_moi_pl2.ml` (of `100/pick.ml`), `audit/pc_audit_equiv.ml` | `loads` |
 | `<`, `>`, `<=` on pairs and lists of `int` | `pc_rfa_htens.ml`, `pc_rfa_hpush.ml` | explicit lexicographic orders, the same as OCaml's |
 | handlers for `Match_failure` (CakeML raises `Bind` when a pattern does not match) | 6 `pc_rfa_*` files | `Bind` |
+| a comment right after a symbol character, `[(* ... end ... *)` (see below) | `pc_p3_s16prop5.ml`, `pc_moi_pd2_glob.ml` | a space: `[ (*` |
 
-So 32 files of `src/` and one of `audit/` have Candle versions in `candle/src/` and `candle/audit/`.  The rest is
+So 34 files of `src/` and one of `audit/` have Candle versions in `candle/src/` and `candle/audit/`.  The rest is
 used unchanged.  Not needed: `Kernel.compute`, loops (`for`, `while`), `lazy`.  Supported as in OCaml: `when` guards, `as`
 patterns, string patterns, `function`, `try`/`raise`, `Failure s` patterns, `ignore`, `begin`/`end`,
 `type_invention_error`, identical redefinitions (`Benign redefinition`).  Of the 5,688 library identifiers that
@@ -42,6 +43,23 @@ identifiers could not see (polymorphic comparisons and the standard exceptions a
 the run reached them.  It also checked the converted prints, the caches, the orders, `make.ml`, the result
 printers and `dump_final.ml`, and found no other problem.  CakeML's value restriction (it has no weak type
 variables, so `let r = ref []` is an error) is not hit: the top-level references in `src/` are annotated.
+
+**The hang at `pc_p3_s16len.ml` (2026-11-12).**  After 5 h the run stopped: Candle had read
+`needs "src/pc_p3_s16len.ml";;` but did not load it, and waited for input, idle.  The cause is in the file before,
+`pc_p3_s16prop5.ml`, and in Candle's REPL, which splits its input into phrases with a lexer of its own
+(`candle/prover/candle_boot.ml` in CakeML) before parsing them.  That lexer reads a run of symbol characters as
+one token, and `(` and `*` are symbol characters, so in `[(* the core ball persists through tc: closed end *)` it
+sees no comment: `[(*` is a symbol, and the comment's words are tokens.  The scanner counts `begin`, `struct`,
+`sig` and `end` to find the phrases, and a phrase ends only at a `;;` at level 0.  After this `end` the level is
+-1, so the rest of the file and the next `needs` were held as one unfinished phrase, which never ran.  In OCaml,
+`[(*` is `[` and a comment.  `tools/prelex.py` emulates Candle's scanner: of all files that Candle loads, only
+two have such a comment with a word that changes the phrases, this one and `pc_moi_pd2_glob.ml`
+(`[(* inner end: inside the faded zone *)`); 421 other comments after symbol characters contain no such word and
+load as in OCaml.  The Candle versions of the two files add a space after the `[`.  Nothing before the hang was
+affected (the files before `pc_p3_s16prop5.ml` pass the check), so the run went on from its last checkpoint
+before that file.  The driver now also fails when Candle uses no CPU for 10 minutes while it waits for output,
+instead of waiting until its 24 h time-out.  Neither the survey nor the review could find this: the files are
+correct OCaml, and the difference is in how Candle splits them into phrases.
 
 `pc_moi_s2628_stmt.ml` breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`), so it
 may order the conjuncts of some `MOI_SDD_*` antecedents differently from HOL Light; they are used in ways that do
