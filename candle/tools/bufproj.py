@@ -21,5 +21,5 @@ if len(pts) < 2:
 rc, rd = (c1 - c0) / max(1, (b1 - b0) / 1e6), (d1 - d0) / max(1, (b1 - b0) / 1e6)
 print("src loaded %.1f of %.1f MB (%d files); code %.1f MB, data %.1f MB" % (b1 / 1e6, total / 1e6, len(loaded), c1, d1))
 print("per MB of source: code %.2f MB, data %.2f MB" % (rc, rd))
-print("projected at the end of src/: code %.0f of 524 MB, data %.0f of 655 MB"
+print("projected at the end of src/: code %.0f of 1048 MB (524 in the default build), data %.0f of 655 MB"
       % (c1 + rc * (total - b1) / 1e6, d1 + rd * (total - b1) / 1e6))

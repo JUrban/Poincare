@@ -68,10 +68,15 @@ are identical, all 50 type definition theorems agree.  The short sessions also l
 sanity theorems of `audit/check.ml` (`src/pc_audit_sanity.ml` and two files above); their statements are
 identical in both systems, all without hypotheses.
 
+The short sessions also print the conclusions that the 8 headline and audit results must have, parsed from the
+quotations with which `src/` and `audit/` prove them (`dump_expected.ml`; `prove` returns exactly its goal), for
+comparison with the proving session's results (`compare_defs.py --results`).
+
 The proving session prints the definitions of the statement files and all constants (`dump_final.ml`), to link it
 to these.  It has no list of definitions, so it rebuilds each one from the theorem `new_definition` returns, as
-`new_definition` (of `pair.ml`, which binds fresh variables) builds it.  Checked in the HOL Light session: the 28
-rebuilt definitions are the session's own.
+`new_definition` (of `pair.ml`, which binds fresh variables) builds it; it also prints the theorems of the two
+constants defined with `define` (`continuously_differentiable` and the audit's `blind_ck`).  Checked in both HOL
+Light sessions: the 28 rebuilt definitions are the session's own.
 
 ## Resources
 
