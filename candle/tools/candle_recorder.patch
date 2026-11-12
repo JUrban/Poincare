@@ -1,0 +1,27 @@
+diff --git a/candle/kernel.ml b/candle/kernel.ml
+index 87703cb..9b69afb 100644
+--- a/candle/kernel.ml
++++ b/candle/kernel.ml
+@@ -54,12 +54,20 @@ let ABS = Kernel.ABS;;
+ let BETA = Kernel.BETA;;
+ let DEDUCT_ANTISYM_RULE = Kernel.DEDUCT_ANTISYM_RULE;;
+ let new_specification = Kernel.new_specification;;
+-let new_basic_definition = Kernel.new_basic_definition;;
++(* Instrumented copy, for the definition cross-check only. *)
++let the_definitions = ref ([] : thm list);;
++let definitions () = !the_definitions;;
++let new_basic_definition tm =
++  let th = Kernel.new_basic_definition tm in
++  (the_definitions := th :: !the_definitions; th);;
+ let INST_TYPE = Kernel.INST_TYPE;;
+ let INST = Kernel.INST;;
+ 
++let the_tydefs = ref ([] : thm list);;
++let tydefs () = !the_tydefs;;
+ let new_basic_type_definition tyname (absname,repname) th =
+-  Kernel.new_basic_type_definition (tyname, (absname, (repname, th)));;
++  let (th1,th2) = Kernel.new_basic_type_definition (tyname, (absname, (repname, th))) in
++  (the_tydefs := th2 :: th1 :: !the_tydefs; (th1,th2));;
+ 
+ let axioms = Kernel.axioms;;
+ let types = Kernel.types;;

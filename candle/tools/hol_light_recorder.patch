@@ -1,0 +1,16 @@
+--- a/fusion.ml
++++ b/fusion.ml
+@@ -642,6 +642,13 @@
+ 
+ include Hol;;
+ 
++(* scratch copy only: record the type definitions, for candle/dump_tydefs.ml *)
++let the_tydefs = ref ([] : thm list);;
++let tydefs () = !the_tydefs;;
++let new_basic_type_definition tyname names th =
++  let (th1,th2) = Hol.new_basic_type_definition tyname names th in
++  (the_tydefs := th2 :: th1 :: !the_tydefs; (th1,th2));;
++
+ (* ------------------------------------------------------------------------- *)
+ (* Stuff that didn't seem worth putting in.                                  *)
+ (* ------------------------------------------------------------------------- *)

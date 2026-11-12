@@ -21,24 +21,32 @@ quotations and strings removed, `src/` and `audit/` use the following that Candl
 | what | where | change |
 |---|---|---|
 | `Gc.set { ... with ... }` (no `Gc`, no records) | `make.ml` | `candle/make.ml` is `make.ml` without that line (it changes memory use only) |
-| `Printf.printf` (no `Printf`) | 20 files, 24 calls, diagnostic prints; `check.ml`, `audit/check.ml` | `print_string` with `string_of_bool` and `string_of_int`, converted by `candle/tools/convert_printf.py` |
+| `Printf.printf` (no `Printf`) | 20 files, 23 calls, diagnostic prints; `check.ml`, `audit/check.ml` | `print_string` with `string_of_bool` and `string_of_int`, converted by `candle/tools/convert_printf.py` |
 | `string_of_bool`, `List.for_all2` | 20 files; 2 files | defined in `candle/compat.ml` |
 | `Hashtbl.create n`, `add`, `reset`, `hash_param` | caches in `pc_rfa_h3d.ml` (`pc_rfa_hext.ml` and `pc_rfa_hpsd.ml` only reset them) | `compat.ml` adds `add`, `reset` and a term hash; the six tables are created with a hash and an order, as Candle's tables require, and with a type annotation, because CakeML has no weak type variables |
 | `setify` of a list of terms (Candle's takes an order) | 4 files | `setify Term.(<)`, as in Candle's own library; `Term.compare` follows OCaml's order on terms, so the result is the same |
 | `<` on pairs (Candle's is on `int` only) | `pc_moi_s2628_stmt.ml` | an explicit lexicographic order, the same as OCaml's |
 | `loadt` (Candle has `loads`, relative to the current directory) | `pc_moi_pl2.ml` (of `100/pick.ml`), `audit/pc_audit_equiv.ml` | `loads` |
+| `<`, `>`, `<=` on pairs and lists of `int` | `pc_rfa_htens.ml`, `pc_rfa_hpush.ml` | explicit lexicographic orders, the same as OCaml's |
+| handlers for `Match_failure` (CakeML raises `Bind` when a pattern does not match) | 6 `pc_rfa_*` files | `Bind` |
 
-So 26 files of `src/` and one of `audit/` have Candle versions in `candle/src/` and `candle/audit/`.  The rest is
-used unchanged.  Not needed:
-`Kernel.compute`, loops (`for`, `while`), `lazy`, polymorphic `compare` (no other uses found).  Supported as in
-OCaml: `when` guards, `as` patterns, `function`, `try`/`raise`, `ignore`, `begin`/`end`,
-`type_invention_error`.  Of the 5,688 library identifiers that `src/` and `audit/` use, all exist in Candle
-except some from library files that `src/` loads itself (for example `Multivariate/homology.ml`).
+So 32 files of `src/` and one of `audit/` have Candle versions in `candle/src/` and `candle/audit/`.  The rest is
+used unchanged.  Not needed: `Kernel.compute`, loops (`for`, `while`), `lazy`.  Supported as in OCaml: `when` guards, `as`
+patterns, string patterns, `function`, `try`/`raise`, `Failure s` patterns, `ignore`, `begin`/`end`,
+`type_invention_error`, identical redefinitions (`Benign redefinition`).  Of the 5,688 library identifiers that
+`src/` and `audit/` use, all exist in Candle except some from library files that `src/` loads itself (for example
+`Multivariate/homology.ml`), and none has a different type in Candle except `setify`.
 
-Two things may still fail only at load time: top-level values whose type keeps a type variable (CakeML's value
-restriction has no weak variables, so `let r = ref []` is an error), and comparisons with `<` on non-integers.
-`pc_moi_s2628_stmt.ml` also breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`),
-so it may order some terms differently from HOL Light.
+An independent review of these changes (2026-11-12) found the last two rows of the table, which the survey of
+identifiers could not see (polymorphic comparisons and the standard exceptions are not library definitions), before
+the run reached them.  It also checked the converted prints, the caches, the orders, `make.ml`, the result
+printers and `dump_final.ml`, and found no other problem.  CakeML's value restriction (it has no weak type
+variables, so `let r = ref []` is an error) is not hit: the top-level references in `src/` are annotated.
+
+`pc_moi_s2628_stmt.ml` breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`), so it
+may order the conjuncts of some `MOI_SDD_*` antecedents differently from HOL Light; they are used in ways that do
+not depend on the order.  Candle's kernel also orders hypotheses differently from HOL Light's (a variable before a
+constant), which changes the order of `hyp` lists; this is Candle's, not the port's.
 
 ## The statements (first results)
 

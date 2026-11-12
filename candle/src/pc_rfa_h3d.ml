@@ -1412,7 +1412,7 @@ let RFA_HDEF_DERIVE asm w =
       INST (map2 (fun n v -> (nm n, v)) l (fst(chop_list (length l) ivars))) th in
   rfa_mp_hook := (fun tm -> try hook_raw tm with Failure s -> failwith s
                                                | Not_found -> failwith "rfa_mp_hook"
-                                               | Match_failure _ -> failwith "rfa_mp_hook");
+                                               | Bind ->  (* Candle: CakeML raises Bind where OCaml raises Match_failure *) failwith "rfa_mp_hook");
   Hashtbl.reset rfa_mp_cache;
   (* the contracted Bianchi identity at [j] and its derivative at [j; l] *)
   let mk_ft l = list_mk_comb(`rfa_ft:real^3^3->num list->num->real^3`,

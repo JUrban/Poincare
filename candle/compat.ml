@@ -39,26 +39,24 @@ end;;
 (* ------------------------------------------------------------------------- *)
 (* Hashtbl: Candle's tables take a hash function and an order when they are  *)
 (* created.  add is replace, which a cache cannot tell apart from OCaml's    *)
-(* add; reset empties the table; hash_param hashes a term, by its structure  *)
-(* up to a bounded number of nodes, as OCaml's does.  src/ uses it on terms  *)
-(* only.                                                                     *)
+(* add; reset empties the table; hash_param hashes a term, by its names and  *)
+(* structure up to a bounded number of nodes, as OCaml's does.  src/ uses it *)
+(* on terms only.                                                             *)
 (* ------------------------------------------------------------------------- *)
 
 let candle_hash_mod = 1000000007;;
 
 let candle_term_hash =
+  (* names and structure only: types are left out, which makes the hash cheaper; the table's order tells
+     apart the terms that collide *)
   let mix h x = (h * 31 + x) mod candle_hash_mod in
-  let rec ty_hash ty =
-    if is_vartype ty then String.hash (dest_vartype ty) mod candle_hash_mod else
-    let s, args = dest_type ty in
-    itlist (fun a h -> mix h (ty_hash a)) args (String.hash s mod candle_hash_mod) in
   fun limit tm ->
     let budget = ref limit in
     let rec hash tm =
       if !budget <= 0 then 0 else
       (budget := !budget - 1;
-       if is_var tm then let s, ty = dest_var tm in mix (mix 1 (String.hash s mod candle_hash_mod)) (ty_hash ty)
-       else if is_const tm then let s, ty = dest_const tm in mix (mix 2 (String.hash s mod candle_hash_mod)) (ty_hash ty)
+       if is_var tm then mix 1 (String.hash (fst(dest_var tm)) mod candle_hash_mod)
+       else if is_const tm then mix 2 (String.hash (fst(dest_const tm)) mod candle_hash_mod)
        else if is_comb tm then let f, x = dest_comb tm in let hf = hash f in mix (mix 3 hf) (hash x)
        else let v, b = dest_abs tm in let hv = hash v in mix (mix 4 hv) (hash b)) in
     hash tm;;

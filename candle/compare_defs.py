@@ -5,13 +5,15 @@ Default: both logs have candle/dump_defs.ml's output (every kernel definition, c
 example the short sessions of candle/statements.ml on HOL Light and on Candle with the recorder.  Every
 definition on both sides must be identical; so must the dependency cones of the statement constants, and the
 constants and type operators of both sessions, apart from those expected on one side only.
---final: LOG_A as above; LOG_B from candle/dump_final.ml in a proving session, which prints the definitions of
-the statement files only, and all constants and type operators (of the much larger session).  Each definition of
-LOG_B must be LOG_A's, and every constant and type operator of the cones (from LOG_A) must have the same type
-and arity in LOG_B.
+--final: LOG_A as above, and also dump_final.ml's output (a short session on HOL Light runs both); LOG_B from
+candle/dump_final.ml in a proving session, which prints the definitions of the statement files only, the theorems
+of the two constants defined with define, and all constants and type operators (of the much larger session).
+Each definition and define theorem of LOG_B must be LOG_A's, and every constant and type operator of the cones
+(from LOG_A) must have the same type and arity in LOG_B.
 --tydefs: both logs have candle/dump_tydefs.ml's output; the type definition theorems are compared.
---results: LOG_B has candle/dump_thms.ml's output (all the results of the checks); LOG_A has that or a part of it
-(candle/dump_sanity.ml).  Each result of LOG_A must be identical in LOG_B, and LOG_B's must have no hypotheses.
+--results: LOG_B has candle/dump_thms.ml's output (all the results of the checks); LOG_A has the same, or a short
+session's dump_sanity.ml and dump_expected.ml output (the 30 sanity theorems, and the conclusions that the other 8
+must have).  All 38 must be identical, and LOG_B's must have no hypotheses.
 
 Names numbered by the session are renamed, injectively within each line.  A log may hold several dumps; each
 mode reads the lines it needs.  The exit code is 0 only if the verdict is positive."""
@@ -25,7 +27,7 @@ HOL_LIGHT_ONLY = {"hashek"}  # thecops.ml, which Candle's hol_lib.ml does not lo
 CANDLE_ONLY = re.compile(r"Cexp_\w+|_dest_cval|_mk_cval|cval\w*|generated:.*cval.*")  # candle/compute.ml
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 GENERATED = re.compile(r"\?\d+|GEN%PVAR%\d+|(?<=[( ])_[1-9]\d*(?= )")  # not _0, HOL Light's real constant
-MARKERS = ("DEFDUMP ", "CONSTDUMP ", "TYPEDUMP ", "TYDEFDUMP ", "THMDUMP ")
+MARKERS = ("DEFDUMP ", "CONSTDUMP ", "TYPEDUMP ", "TYDEFDUMP ", "THMDUMP ", "DEFTHMDUMP ")
 
 
 def canon(text):
@@ -44,6 +46,8 @@ def term(path, raw):
 
 def read(path):
     defs, consts, types, thms, tydefs, done = {}, {}, {}, {}, set(), False
+    global defthms
+    defthms = {}
     for line in open(path, errors="replace"):
         line = re.sub(r"^[#>] +", "", ANSI.sub("", line).strip())  # a toplevel prompt may precede the first line
         if line == "DUMP_DONE" or line == "THMDUMP_DONE":
@@ -62,6 +66,9 @@ def read(path):
                 defs[key].append(body)
         elif line.startswith("TYDEFDUMP "):
             tydefs.add(term(path, line[10:]))
+        elif line.startswith("DEFTHMDUMP "):
+            _, n, body = line.split(" ", 2)
+            defthms[n] = term(path, body)
         elif line.startswith("THMDUMP "):
             _, n, hyps, body = line.split(" ", 3)
             thms[n] = (hyps, term(path, body))
@@ -116,8 +123,8 @@ allow = set()
 if "--allow-only" in args:
     i = args.index("--allow-only"); allow = set(args[i + 1].split(",")); del args[i:i + 2]
 mode = ([f for f in flags if f in sys.argv] or ["--defs"])[0]
-ad, ac, at, athm, atd = read(args[0])
-bd, bc, bt, bthm, btd = read(args[1])
+ad, ac, at, athm, atd = read(args[0]); adt = defthms
+bd, bc, bt, bthm, btd = read(args[1]); bdt = defthms
 
 if mode == "--tydefs":
     print("type definition theorems: A %d, B %d, on both sides %d" % (len(atd), len(btd), len(atd & btd)))
@@ -127,13 +134,12 @@ if mode == "--tydefs":
     sys.exit(0 if finish("TYDEFS", bool(atd) and not atd - btd and all("cval" in x for x in extra)) else 1)
 
 if mode == "--results":
-    # A may hold only some of the results (a short session has the 30 sanity theorems); B must hold all of them
     same = [n for n in athm if bthm.get(n) == athm[n]]
     print("results: A %d, B %d, identical %d; with hypotheses: A %d, B %d"
           % (len(athm), len(bthm), len(same), sum(h != "0" for h, _ in athm.values()),
              sum(h != "0" for h, _ in bthm.values())))
     show("results of A that differ in B or are missing", set(athm) - set(same))
-    ok = bool(athm) and len(same) == len(athm) and len(bthm) == RESULTS and all(h == "0" for h, _ in bthm.values())
+    ok = len(athm) == len(same) == len(bthm) == RESULTS and all(h == "0" for h, _ in bthm.values())
     sys.exit(0 if finish("RESULTS", ok) else 1)
 
 print("definitions: A %d constants, B %d" % (len(ad), len(bd)))
@@ -148,6 +154,9 @@ if mode == "--final":
     ok = not diff and bool(bd)
     show("defined in B only", set(bd) - set(ad))
     ok = ok and not (set(bd) - set(ad))
+    # the theorems of the constants defined with define (dump_final.ml prints them in both)
+    print("define theorems: A %d, B %d, identical %d" % (len(adt), len(bdt), sum(bdt.get(n) == adt[n] for n in adt)))
+    ok = ok and bool(adt) and adt == bdt
     for r in roots:
         seen, undefined = cone(ad, r)
         consts_bad = [n for n in seen if ac.get(n) is None or bc.get(n) != ac[n]]

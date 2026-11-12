@@ -3,8 +3,9 @@
 (* definitions made with new_definition in src/poincare_statement.ml,         *)
 (* src/pc_interfaces.ml and audit/poincare_blind.ml, in the form in which    *)
 (* the kernel recorded them (rebuilt from the theorems as new_definition     *)
-(* builds them; see basic_definition_of), and all constants and type         *)
-(* operators, as candle/dump_defs.ml prints them.  Run after the audit.      *)
+(* builds them; see basic_definition_of), the theorems of the two constants  *)
+(* defined with define, and all constants and type operators, as             *)
+(* candle/dump_defs.ml prints them.  Run after the audit.                    *)
 (* Self-contained, so that no nested load precedes the output.               *)
 (* ========================================================================= *)
 
@@ -72,6 +73,13 @@ do_list (fun th -> print_string ("DEFDUMP " ^ dump_tm (basic_definition_of th) ^
    blind_sphere3_atlas;
    BLIND_POINCARE_TOP;
    BLIND_POINCARE_SMOOTH];;
+(* The constants defined with define: the theorems define returned (the     *)
+(* last binding of each name; continuously_differentiable is defined again,   *)
+(* identically, in src/ns_smooth.ml).                                         *)
+
+do_list (fun (n,th) -> print_string ("DEFTHMDUMP " ^ n ^ " " ^ dump_tm (concl th) ^ "\n"))
+  [("continuously_differentiable", continuously_differentiable);
+   ("blind_ck", blind_ck)];;
 do_list (fun (n,ty) -> print_string ("CONSTDUMP " ^ n ^ " " ^ dump_ty ty ^ "\n"))
         (constants());;
 do_list (fun (n,k) ->

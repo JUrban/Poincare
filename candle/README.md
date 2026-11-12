@@ -2,7 +2,7 @@
 
 This directory runs the development on [Candle](https://github.com/CakeML/candle)
 (HOL Light on CakeML).  `src/`, `audit/` and `make.ml` are not changed and still load in
-HOL Light: the 27 files that Candle needs changed have Candle versions in `candle/src/`
+HOL Light: the 33 files that Candle needs changed have Candle versions in `candle/src/`
 and `candle/audit/`, and `candle/make.ml` is `make.ml` without its `Gc.set` line.
 `REPORT.md` describes the changes, the results and how they were checked.
 
@@ -12,8 +12,8 @@ Use Candle `master` (tested at `6a9acd5`), built as its README describes, but wi
 larger code buffer: in `candle/build/cake.S` (after `candle/cake.S.patch`), set
 `CODE_BUFFER_SIZE` to `1048576000` and run `make` there.  The development compiles to
 more code than the 500 MiB of the default build (see `REPORT.md`).  Candle's
-`needs` and `loads` are relative to the current directory and have no load path, so
-make the repository visible from the Candle root:
+`needs` and `loads` look for files in Candle's `loadPath`, which is the current
+directory, so make the repository visible from the Candle root:
 
 ```
 candle/setup.sh CANDLE_ROOT
@@ -56,5 +56,5 @@ output, use `loads "pc/candle/make.ml";;`.
 | `compat.ml` | `string_of_bool`, `List.for_all2` and the `Hashtbl` functions that `src/` uses |
 | `check.ml`, `check_results.ml` | `check.ml` of the main repository, without `Printf` |
 | `audit.ml`, `audit_results.ml` | `audit/make.ml` and `audit/check.ml`, without `Printf` and without loading `make.ml`; run after `make.ml` |
-| `statements.ml`, `dump_*.ml`, `compare_defs.py` | compare the statements with HOL Light; see `REPORT.md` |
+| `statements.ml`, `dump_*.ml`, `compare_defs.py` | compare the statements and results with HOL Light; see `REPORT.md` |
 | `tools/` | the scripts behind the runs in `REPORT.md`; paths are those of the machine they ran on |
