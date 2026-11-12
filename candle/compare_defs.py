@@ -10,7 +10,8 @@ the statement files only, and all constants and type operators (of the much larg
 LOG_B must be LOG_A's, and every constant and type operator of the cones (from LOG_A) must have the same type
 and arity in LOG_B.
 --tydefs: both logs have candle/dump_tydefs.ml's output; the type definition theorems are compared.
---results: both logs have candle/dump_thms.ml's output; the results must be identical, with no hypotheses.
+--results: LOG_B has candle/dump_thms.ml's output (all the results of the checks); LOG_A has that or a part of it
+(candle/dump_sanity.ml).  Each result of LOG_A must be identical in LOG_B, and LOG_B's must have no hypotheses.
 
 Names numbered by the session are renamed, injectively within each line.  A log may hold several dumps; each
 mode reads the lines it needs.  The exit code is 0 only if the verdict is positive."""
@@ -126,12 +127,13 @@ if mode == "--tydefs":
     sys.exit(0 if finish("TYDEFS", bool(atd) and not atd - btd and all("cval" in x for x in extra)) else 1)
 
 if mode == "--results":
+    # A may hold only some of the results (a short session has the 30 sanity theorems); B must hold all of them
     same = [n for n in athm if bthm.get(n) == athm[n]]
     print("results: A %d, B %d, identical %d; with hypotheses: A %d, B %d"
           % (len(athm), len(bthm), len(same), sum(h != "0" for h, _ in athm.values()),
              sum(h != "0" for h, _ in bthm.values())))
-    show("results that differ", (set(athm) | set(bthm)) - set(same))
-    ok = len(same) == RESULTS == len(athm) == len(bthm) and all(h == "0" for h, _ in bthm.values())
+    show("results of A that differ in B or are missing", set(athm) - set(same))
+    ok = bool(athm) and len(same) == len(athm) and len(bthm) == RESULTS and all(h == "0" for h, _ in bthm.values())
     sys.exit(0 if finish("RESULTS", ok) else 1)
 
 print("definitions: A %d constants, B %d" % (len(ad), len(bd)))

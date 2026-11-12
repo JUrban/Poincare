@@ -34,6 +34,25 @@ def free_port():
     return str(p)
 
 
+def log_buffers(p):
+    """Log how much of Candle's code and data buffers is used (pc/tools/codehw_lib.py); the driver is an
+    ancestor of the Candle process, so it may read its memory."""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import codehw_lib
+        def tree(pid):
+            kids = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True).stdout.split()
+            return [pid] + [x for k in kids for x in tree(int(k))]
+        for x in tree(p.pid):
+            try:
+                c, d = codehw_lib.high_waters(x)
+                log("   BUFFERS code %.1f MB data %.1f MB" % (c / 1e6, d / 1e6)); return
+            except Exception:
+                pass
+    except Exception as e:
+        log("   BUFFERS unknown: %s" % e)
+
+
 def log(msg):
     print(msg, flush=True)
 
@@ -181,6 +200,7 @@ def main():
             p.close(force=True)
             return 1
         log("OK   %-50s %8.1fs  (total %.1fs)" % (label, dt, time.time() - t0))
+        log_buffers(p)
     if a.keep:
         p.interact()
     p.sendline("exit 0;;")

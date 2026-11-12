@@ -38,6 +38,25 @@ restriction has no weak variables, so `let r = ref []` is an error), and compari
 `pc_moi_s2628_stmt.ml` also breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`),
 so it may order some terms differently from HOL Light.
 
+## The statements (first results)
+
+The statement constants depend only on `src/poincare_statement.ml` and `src/pc_interfaces.ml`, which `make.ml`
+loads first, and the audit's on `audit/poincare_blind.ml` and a few early files.  So short sessions compare them:
+the library of `make.ml`, then `candle/statements.ml`, then every definition, constant, type operator and type
+definition theorem (`dump_defs.ml`, `dump_tydefs.ml`).  HOL Light `e5236a58` against Candle `master` with the
+recorder of the Navier_Stokes port:
+
+* 0 of the 920 definitions on both sides differ; 0 constants differ in type.
+* The dependency cones of `POINCARE_STATEMENT`, `POINCARE_SMOOTH_STATEMENT`, `POINCARE_EMBEDDED_STATEMENT`,
+  `MOISE_SMOOTHING_STATEMENT`, `BLIND_POINCARE_TOP` and `BLIND_POINCARE_SMOOTH` (135 to 186 constants) are
+  identical.
+* All 50 type definition theorems of the HOL Light session are in Candle's; Candle has 2 more, for its `cval`.
+* One-sided: `hashek` (HOL Light's `thecops.ml`) and Candle's `Cexp_*` and `cval` constants, none in a cone.
+
+The proving session prints the definitions of the statement files and all constants (`dump_final.ml`), to link it
+to these.  A first version rebuilt the definitions wrongly (`new_definition` of `pair.ml` binds fresh variables);
+the HOL Light session showed this, and it is fixed.
+
 ## Resources
 
 * Candle's heap is fixed when it starts, and the process touches all of it within a minute, so each session costs
