@@ -201,10 +201,10 @@ def main():
                 # no output for IDLE_POLL seconds: go on waiting if Candle is computing; if it is not, it is
                 # waiting for input, for example because its phrase scanner did not see the end of a phrase
                 now = cpu_ticks(p)
-                if now != ticks:
+                if now - ticks > 100:  # more than 1 s of CPU: a few stray clock ticks are not work
                     ticks = now
                     continue
-                err = "IDLE: no CPU use for %d s, so Candle is waiting for input" % IDLE_POLL
+                err = "IDLE: under 1 s of CPU in %d s, so Candle is waiting for input" % IDLE_POLL
                 ctx = p.before[-3000:] if p.before else ""
                 break
             if k == 0:
