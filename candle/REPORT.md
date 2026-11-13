@@ -1,6 +1,7 @@
 # Poincare on Candle: interim report
 
-Status: in progress, on branch `candle-port`.  Nothing below is a final result.
+Status (2026-11-13): steps 1 to 4 of the plan are done: the development loads on Candle, and its checks, audit,
+definitions and results agree with HOL Light (see "The main run").  Step 5, the fresh session, is under way.
 
 ## Plan
 
@@ -101,6 +102,47 @@ to these.  It has no list of definitions, so it rebuilds each one from the theor
 constants defined with `define` (`continuously_differentiable` and the audit's `blind_ck`).  Checked in both HOL
 Light sessions: the 28 rebuilt definitions are the session's own.
 
+## The main run (2026-11-12 and 13)
+
+Candle `master` with the larger code buffer (`pc-big`), heap 46 GB, driven file by file (`tools/pc_lane.py`)
+from a checkpoint of the library: `compat.ml`, the 1,090 files of `src/` in the order of `candle/make.ml`, then
+`check_results.ml` and `audit.ml`, with a DMTCP checkpoint every 30 minutes or so of HOL Light time (14 in all).
+It stopped twice and went on each time from the checkpoint before (both described above): at
+`pc_p3_s16len.ml` (the comment after `[`) and at `pc_moi_lt_cutb.ml` (the driver).  No file failed to load.
+
+`check_results.ml` printed (Candle prints `T` as `true` and `!` as `forall`):
+
+```
+POINCARE_TOP hypotheses 0  conclusion is POINCARE_STATEMENT (:A), A a type variable: true
+POINCARE_SMOOTH hypotheses 0  conclusion is POINCARE_SMOOTH_STATEMENT (:A), A a type variable: true
+POINCARE_EMBEDDED hypotheses 0  conclusion is POINCARE_EMBEDDED_STATEMENT (:A), A a type variable: true
+MOI_SST_HEADLINE hypotheses 0  conclusion is !u:A->bool. MOISE_SMOOTHING_STATEMENT u: true
+AXIOMS_COUNT 3
+AXIOM exists f. ONE_ONE f /\ ~ONTO f
+AXIOM forall P x. P x ==> P ((@) P)
+AXIOM forall t. (\x. t x) = t
+POINCARE_CHECK_DONE
+```
+
+and `audit.ml` printed `POINCARE_TOP_BLIND_EQUIV`, `POINCARE_SMOOTH_BLIND_EQUIV`, `BLIND_POINCARE_TOP_PROVED` and
+`BLIND_POINCARE_SMOOTH_PROVED` with 0 hypotheses and the expected conclusions (`true`), the 30 sanity theorems
+each with 0 hypotheses, `SANITY_THEOREMS 30`, the same three axioms, and `POINCARE_AUDIT_CHECK_DONE`.
+
+From the final checkpoint, `dump_final.ml` and `dump_thms.ml`, compared with both short HOL Light sessions
+(`31fe213` and `e5236a58`):
+
+* `compare_defs.py --final`: the 28 definitions of the statement files and the two `define` theorems are
+  identical to HOL Light's; in the six cones (135 to 186 constants), every constant and type operator has the
+  same type and arity.  `FINAL_IDENTICAL` for both.
+* `compare_defs.py --results`: the 38 results (4 headline theorems, 4 audit results, 30 sanity theorems) are
+  identical to HOL Light's (for the 8, the conclusions of the quotations that prove them), and none has
+  hypotheses.  `RESULTS_IDENTICAL` for both.
+
+Loading `src/` took 36,830 s (10.2 h) in all, 1.57x the times upstream published (see "Time" for why these are
+not comparable); the checkpoints took 246 s each, and each restore about 3 minutes.  The slowest files were
+`pc_sch_b1canc.ml` (596 s), `pc_moi_s35_minc.ml` (551 s) and `pc_moi_lt_seam.ml` (468 s).  At the end the code
+buffer held 656 MB and the data buffer 227 MB.
+
 ## Resources
 
 * Candle's heap is fixed when it starts, and the process touches all of it within a minute, so each session costs
@@ -115,10 +157,11 @@ Light sessions: the 28 rebuilt definitions are the session's own.
   the buffer holds.  So the run was stopped after an hour and restarted with Candle built with a code buffer of
   1000 MiB (`CODE_BUFFER_SIZE 1048576000` in `cake.S`; the data buffer is unchanged, and doubling both does not
   link, because the text and data must stay within 2 GB of each other).  The binary is otherwise built from the
-  same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.  On this
-  binary the code grows by about 5.2 MB per MB of source, which projects to about 590 MB for all of `src/`.
+  same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.  The whole
+  development, with the checks and the audit, used 656 MB of code (5.9 MB per MB of source over all of `src/`)
+  and 227 MB of data, so the default build could not have loaded it.
 
-## Time (interim)
+## Time
 
 The times that upstream published (`doc/timing.tsv`) are not comparable with a run here: HOL Light `e5236a58`
 (bytecode toplevel, OCaml 4.14.1, with `make.ml`'s `Gc.set`) took 1.61x their time on the first 500 files of
@@ -134,4 +177,5 @@ machine with many idle cores, and CPU and wall-clock times of HOL Light agree wi
 
 Of the 219 files that take 10 s or more in HOL Light, the median ratio is 1.30 (quartiles 1.07 and 1.52, from
 0.54 to 2.50).  By family of files, from 1.01 (`pc_apx`) to 1.45 (`pc_cmp`).  Candle's times exclude the
-checkpoints.
+checkpoints.  For all of `src/`, Candle took 1.57x upstream's times, against 2.04x on the first 500 files, so the
+later files are relatively faster in Candle; HOL Light was not timed here on them.
