@@ -61,6 +61,11 @@ before that file.  The driver now also fails when Candle uses no CPU for 10 minu
 instead of waiting until its 24 h time-out.  Neither the survey nor the review could find this: the files are
 correct OCaml, and the difference is in how Candle splits them into phrases.
 
+A second stop, at `pc_moi_lt_cutb.ml`, was the driver's: a read of Candle's output ended inside the name in
+`- Finished loading src/pc_moi_lt_cutb.ml`, the driver matched `src/pc_moi_lt`, so its stack of loads was not
+popped and it went on waiting at the prompt, although the file had loaded.  The driver now matches a name only
+once its line has ended, and the run went on from the checkpoint before (item 1012).
+
 `pc_moi_s2628_stmt.ml` breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`), so it
 may order the conjuncts of some `MOI_SDD_*` antecedents differently from HOL Light; they are used in ways that do
 not depend on the order.  Candle's kernel also orders hypotheses differently from HOL Light's (a variable before a

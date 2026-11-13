@@ -15,17 +15,21 @@ CANDLE_ROOT = os.environ.get("CANDLE_ROOT", "/project/repos/candle")
 DM = "/project/opt/dmtcp/bin"
 CKROOT = "/project/work/ckpt"
 
+# A name or message is matched only when its line has ended (the lookahead does not consume the newline that the
+# next pattern starts with): otherwise a read that ends inside a file name matches part of it, the stack of loads
+# is not popped, and the driver waits at the prompt.
+EOL = r'(?=\r?\n)'
 PATS = [
-    r'\n\- Loading (\S+)',
-    r'\n\- Finished loading (\S+)',
-    r'\n(ERROR: [^\n]*)',
-    r'\n(Parsing failed[^\n]*)',
-    r'\n(EXCEPTION: [^\n]*)',
-    r'\n(Type error[^\n]*)',
+    r'\n\- Loading (\S+)' + EOL,
+    r'\n\- Finished loading (\S+)' + EOL,
+    r'\n(ERROR: [^\r\n]*)' + EOL,
+    r'\n(Parsing failed[^\r\n]*)' + EOL,
+    r'\n(EXCEPTION: [^\r\n]*)' + EOL,
+    r'\n(Type error[^\r\n]*)' + EOL,
     r'\n# ',
     pexpect.TIMEOUT,
     pexpect.EOF,
-    r'\n\- Already loaded: (\S+)',
+    r'\n\- Already loaded: (\S+)' + EOL,
 ]
 
 
