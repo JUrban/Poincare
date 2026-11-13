@@ -1,7 +1,8 @@
 # HOL Light developments on Candle: incompatibilities and how to remove them
 
 A memo from porting two developments to Candle `master` (`6a9acd5`): Navier_Stokes, which needed no source changes,
-and Poincare (1,090 files), which needs Candle versions of 35 files (in progress; see `REPORT.md`).
+and Poincare (1,090 files), which needs Candle versions of 35 files and a larger code buffer, and loads in full with the same results as in HOL Light
+(see `REPORT.md`).
 
 ## What differs, and what the ports do now
 

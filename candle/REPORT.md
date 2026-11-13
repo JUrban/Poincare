@@ -1,7 +1,8 @@
-# Poincare on Candle: interim report
+# Poincare on Candle: report
 
-Status (2026-11-13): steps 1 to 4 of the plan are done: the development loads on Candle, and its checks, audit,
-definitions and results agree with HOL Light (see "The main run").  Step 5, the fresh session, is under way.
+Status (2026-11-13): the plan is done.  The development loads on Candle, and its checks, audit, definitions and
+results agree with HOL Light (see "The main run"); a fresh session with the commands of `README.md` gave the same
+(see "The fresh session").
 
 ## Plan
 
@@ -160,6 +161,24 @@ Loading `src/` took 36,830 s (10.2 h) in all, 1.57x the times upstream published
 not comparable); the checkpoints took 246 s each, and each restore about 3 minutes.  The slowest files were
 `pc_sch_b1canc.ml` (596 s), `pc_moi_s35_minc.ml` (551 s) and `pc_moi_lt_seam.ml` (468 s).  At the end the code
 buffer held 656 MB and the data buffer 227 MB.
+
+## The fresh session (2026-11-13)
+
+One new Candle process (the same `pc-big` binary, heap 46 GB, no checkpoints), set up with `setup.sh`, ran the
+commands of `README.md`: `#use "hol.ml"`, `loads "pc/candle/check.ml"`, `loads "pc/candle/audit.ml"`, then
+`dump_final.ml` and `dump_thms.ml` for the comparison (`tools/pc_oneshot.sh`).  The driver was a version before
+the second review: it had the idle check of 1 s of CPU but not the marker after each item, which matters less
+here, since `check.ml` is one item; the check of the last `let` below covers it.
+
+* `hol.ml` took 126 s, `check.ml` 34,739 s (9.6 h, the whole of `src/`), `audit.ml` 38 s: 34,911 s in all.  The
+  buffers ended at 656.2 MB of code and 226.8 MB of data, as in the main run.
+* `check.ml` and `audit.ml` printed exactly what the main run printed (above): the four headline results with 0
+  hypotheses and `true`, `AXIOMS_COUNT 3` with the same three axioms, `POINCARE_CHECK_DONE`, the four audit
+  results `true`, the 30 sanity theorems with 0 hypotheses, `SANITY_THEOREMS 30` and `POINCARE_AUDIT_CHECK_DONE`.
+* All 1,090 files of `src/` were loaded to their end: in each, the last top-level `let` printed its value
+  (1,089 files; `pc_geo_iface.ml` has none, and `pc_moi_s34_residstmt.ml` printed `RESIDSTMT_GLUE true`).
+* `compare_defs.py --final` and `--results` against both short HOL Light sessions (`31fe213` and `e5236a58`):
+  `FINAL_IDENTICAL` and `RESULTS_IDENTICAL` (38 of 38, none with hypotheses) for both.
 
 ## Resources
 
