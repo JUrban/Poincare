@@ -53,19 +53,37 @@ one token, and `(` and `*` are symbol characters, so in `[(* the core ball persi
 sees no comment: `[(*` is a symbol, and the comment's words are tokens.  The scanner counts `begin`, `struct`,
 `sig` and `end` to find the phrases, and a phrase ends only at a `;;` at level 0.  After this `end` the level is
 -1, so the rest of the file and the next `needs` were held as one unfinished phrase, which never ran.  In OCaml,
-`[(*` is `[` and a comment.  `tools/prelex.py` emulates Candle's scanner: of all files that Candle loads, only
-two have such a comment with a word that changes the phrases, this one and `pc_moi_pd2_glob.ml`
-(`[(* inner end: inside the faded zone *)`); 421 other comments after symbol characters contain no such word and
-load as in OCaml.  The Candle versions of the two files add a space after the `[`.  Nothing before the hang was
-affected (the files before `pc_p3_s16prop5.ml` pass the check), so the run went on from its last checkpoint
-before that file.  The driver now also fails when Candle uses no CPU for 10 minutes while it waits for output,
-instead of waiting until its 24 h time-out.  Neither the survey nor the review could find this: the files are
-correct OCaml, and the difference is in how Candle splits them into phrases.
+`[(*` is `[` and a comment.  `tools/prelex.py` ports Candle's scanner and compares, file by file, its phrase
+ends, directives and quotations with those of an OCaml-like lexer (the second review below wrote this version; it
+replaces a narrower check of mine, which missed cases that none of these files has).  Of the 1,191 files that the
+run loaded (HOL Light's library, `src/`, `audit/`, `candle/` and the 39 library files that `src/` loads itself),
+only these two differ: the other is `pc_moi_pd2_glob.ml` (`[(* inner end: inside the faded zone *)`).  (Candle's
+own `firstorder.ml` ends without `;;`, which Candle's loading of its library allows.)  The 616 other comments that
+Candle does not see as comments split into the same phrases.  The Candle versions of the two files add a space
+after the `[`.  Nothing before the hang was affected, so the run went on from its last checkpoint before
+`pc_p3_s16prop5.ml`.  The run's driver had reported that file OK, although its last 25 phrases had not run: it
+took the prompt after `- Finished loading` as the end of the file.  The driver now has Candle print a marker after
+each item, which a phrase that the scanner did not end takes in, so that the item fails instead of the next; and
+it fails when Candle uses under 1 s of CPU in 10 minutes while it waits for output (seen 10 to 20 minutes after
+Candle stops), instead of waiting until its 24 h time-out.  Neither the survey nor the first review could find
+this: the files are correct OCaml, and the difference is in how Candle splits them into phrases.
 
 A second stop, at `pc_moi_lt_cutb.ml`, was the driver's: a read of Candle's output ended inside the name in
 `- Finished loading src/pc_moi_lt_cutb.ml`, the driver matched `src/pc_moi_lt`, so its stack of loads was not
-popped and it went on waiting at the prompt, although the file had loaded.  The driver now matches a name only
-once its line has ended, and the run went on from the checkpoint before (item 1012).
+popped and it went on waiting at the prompt, although the file had loaded.  The idle check, then in a first
+version that took any clock tick as work, did not fire in 20 minutes; it now needs 1 s of CPU.  The driver now
+matches a name only once its line has ended, and the run went on from the checkpoint before (item 1012), with
+the driver of that time (the idle check in its first version, without the marker).
+
+**Second review (2026-11-13).**  An independent review of the work since the first one checked the two new
+Candle versions (each differs from `src/` by the one space), the driver changes, and the claims of this report
+against the logs: every one of the 1,090 files of `src/` has an `OK` in its last attempt, the two restarts went on
+at the right items, nothing loaded before a checkpoint depends on a file loaded only after it, and the numbers of
+"The main run" and "Time" are those of the logs.  It found the driver's false `OK` above, the gaps of my first
+`prelex.py`, and the details corrected here.  Since the driver's `OK` alone does not show that a file ran to its
+end, the logs were also checked for that: in the last attempt at each file, the last top-level `let` printed its
+value (1,089 files; `pc_geo_iface.ml` has none, and the last phrase of `pc_moi_s34_residstmt.ml` printed
+`RESIDSTMT_GLUE true`).
 
 `pc_moi_s2628_stmt.ml` breaks ties by `string_of_term`, which prints differently in Candle (`true` for `T`), so it
 may order the conjuncts of some `MOI_SDD_*` antecedents differently from HOL Light; they are used in ways that do
@@ -146,15 +164,15 @@ buffer held 656 MB and the data buffer 227 MB.
 ## Resources
 
 * Candle's heap is fixed when it starts, and the process touches all of it within a minute, so each session costs
-  its whole heap.  HOL Light peaks at 17.5 GiB for this development (23.3 GiB without the `Gc.set`), against
-  7.4 GiB for Navier_Stokes, which ran in a 24 GB Candle heap.  The main lane uses 46 GB, so only one such session
+  its whole heap.  HOL Light peaks at 17.5 GiB for this development (23.3 GiB without the `Gc.set`; upstream's
+  measurements, `doc/REPORT.md`), against 7.4 GiB for Navier_Stokes, which ran in a 24 GB Candle heap.  The main lane uses 46 GB, so only one such session
   runs at a time.
 * Candle compiles every top-level phrase into a code buffer and a data buffer whose sizes are fixed when the binary
-  is built (`candle/cake.S.patch`: 500 MiB and 625 MiB).  The driver logs how much of each is used, by reading the
-  Candle process's memory (both buffers start zeroed and fill from the start; `tools/codehw_lib.py`).  The library
-  (to `100/green.ml`) uses 92 MB of code and 45 MB of data.  In the first 11 MB of `src/` the code grew by 4.8 MB
-  per MB of source (2.7 to 6.6 by family of files), which projects to about 554 MB for all of `src/`, more than
-  the buffer holds.  So the run was stopped after an hour and restarted with Candle built with a code buffer of
+  is built (Candle's `candle/cake.S.patch`: 500 MiB and 625 MiB).  The driver logs how much of each is used, by
+  reading the Candle process's memory (both buffers start zeroed and fill from the start; `tools/codehw_lib.py`).
+  The library (to `100/green.ml`) uses 94.5 MB of code and 46.3 MB of data.  In the first 11.5 MB of `src/` the
+  code grew by 4.9 MB per MB of source (2.7 to 6.6 by family of files), which projects to about 562 MB for all of
+  `src/`, more than the buffer holds.  So the run was stopped after an hour and restarted with Candle built with a code buffer of
   1000 MiB (`CODE_BUFFER_SIZE 1048576000` in `cake.S`; the data buffer is unchanged, and doubling both does not
   link, because the text and data must stay within 2 GB of each other).  The binary is otherwise built from the
   same `cake.S` and `basis_ffi.c`.  This is the one change to Candle; its sources are `master`'s.  The whole

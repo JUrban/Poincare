@@ -15,17 +15,17 @@ CANDLE_ROOT = os.environ.get("CANDLE_ROOT", "/project/repos/candle")
 DM = "/project/opt/dmtcp/bin"
 CKROOT = "/project/work/ckpt"
 
-# A name or message is matched only when its line has ended (the lookahead does not consume the newline that the
-# next pattern starts with): otherwise a read that ends inside a file name matches part of it, the stack of loads
-# is not popped, and the driver waits at the prompt.
+# A file name is matched only when its line has ended (the lookahead does not consume the newline that the next
+# pattern starts with): otherwise a read that ends inside a file name matches part of it, the stack of loads is not
+# popped, and the driver waits at the prompt.  Error messages are matched as soon as they start.
 EOL = r'(?=\r?\n)'
 PATS = [
     r'\n\- Loading (\S+)' + EOL,
     r'\n\- Finished loading (\S+)' + EOL,
-    r'\n(ERROR: [^\r\n]*)' + EOL,
-    r'\n(Parsing failed[^\r\n]*)' + EOL,
-    r'\n(EXCEPTION: [^\r\n]*)' + EOL,
-    r'\n(Type error[^\r\n]*)' + EOL,
+    r'\n(ERROR: [^\n]*)',
+    r'\n(Parsing failed[^\n]*)',
+    r'\n(EXCEPTION: [^\n]*)',
+    r'\n(Type error[^\n]*)',
     r'\n# ',
     pexpect.TIMEOUT,
     pexpect.EOF,
@@ -202,6 +202,8 @@ def main():
                 # waiting for input, for example because its phrase scanner did not see the end of a phrase
                 now = cpu_ticks(p)
                 if now - ticks > 100:  # more than 1 s of CPU: a few stray clock ticks are not work
+                    log("   [%8.1fs] computing: %.0f s of CPU in the last %d s" % (time.time() - t0, (now - ticks) / 100.0,
+                                                                             IDLE_POLL))
                     ticks = now
                     continue
                 err = "IDLE: under 1 s of CPU in %d s, so Candle is waiting for input" % IDLE_POLL
@@ -239,6 +241,24 @@ def main():
                     log("   [%8.1fs] already loaded %s" % (time.time() - t0, p.match.group(1)))
                     p.expect(r'\n# ', timeout=120)
                     break
+        if not err:
+            # The item has ended only if Candle runs the next phrase: a phrase that its scanner has not ended (see
+            # tools/prelex.py) takes this one in too, and then the marker never comes.
+            p.sendline('print_string "CDRIVER_SYNC\\n";;')
+            while True:
+                k = p.expect([r'\nCDRIVER_SYNC\r?\n', pexpect.TIMEOUT, pexpect.EOF], timeout=IDLE_POLL)
+                if k == 0:
+                    p.expect(r'\n# ', timeout=120)
+                    break
+                if k == 2:
+                    err = "EOF (process died)"; break
+                now = cpu_ticks(p)
+                if now - ticks > 100:
+                    ticks = now
+                    continue
+                err = "IDLE after the item: Candle did not run the next phrase, so a phrase of the item did not end"
+                ctx = p.before[-3000:] if p.before else ""
+                break
         dt = time.time() - t
         if err:
             log("FAIL %s after %.1fs: %s" % (label, dt, err))
