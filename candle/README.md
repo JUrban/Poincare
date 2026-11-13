@@ -9,8 +9,8 @@ and `candle/audit/`, and `candle/make.ml` is `make.ml` without its `Gc.set` line
 ## Set-up
 
 Use Candle `master` (tested at `6a9acd5`), built as its README describes, but with a
-larger code buffer: in `candle/build/cake.S` (after `candle/cake.S.patch`), set
-`CODE_BUFFER_SIZE` to `1048576000` and run `make` there.  The development compiles to
+larger code buffer: in Candle's `candle/build/cake.S` (after Candle's `candle/cake.S.patch`),
+set `CODE_BUFFER_SIZE` to `1048576000` and run `make` there.  The development compiles to
 more code than the 500 MiB of the default build (see `REPORT.md`).  Candle's
 `needs` and `loads` look for files in Candle's `loadPath`, which is the current
 directory, so make the repository visible from the Candle root:
